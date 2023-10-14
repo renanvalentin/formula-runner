@@ -1,20 +1,19 @@
 import { Opaque } from "type-fest";
+import { Token, TokenTypes } from "./tokenizer";
 
-type ReversePolishNotation = Opaque<string[], "ReversePolishNotation">;
+type ReversePolishNotation = Opaque<Token[], "ReversePolishNotation">;
 
 type ConvertToReversePolishNotation = (
-  expression: string,
+  tokens: Token[],
   debug?: (...args: any) => void
 ) => ReversePolishNotation;
 
 export const convertToReversePolishNotation: ConvertToReversePolishNotation = (
-  expression,
+  tokens,
   debug = () => void 0
 ) => {
-  const tokens = expression.split(/([()+\-*/^,])|\s+/).filter(Boolean);
-
-  const outputQueue: string[] = [];
-  const operatorStack: string[] = [];
+  const outputQueue: Token[] = [];
+  const operatorStack: Token[] = [];
   const argsCounterStack: number[] = [];
 
   while (tokens.length > 0) {
@@ -128,17 +127,23 @@ export const convertToReversePolishNotation: ConvertToReversePolishNotation = (
       }
 
       if (isLeftParenthesis(operatorStack[operatorStack.length - 1])) {
+        operatorStack.pop();
         debug(
           "removing left parenthesis from operator stack",
           outputQueue,
           operatorStack
         );
-        operatorStack.pop();
       }
 
-      if (isFunction(operatorStack[operatorStack.length - 1])) {
+      if (
+        operatorStack.length > 0 &&
+        isFunction(operatorStack[operatorStack.length - 1])
+      ) {
         const argsCounter = argsCounterStack.pop()!;
-        outputQueue.push(argsCounter.toString());
+        outputQueue.push({
+          type: TokenTypes.NUMBER,
+          value: argsCounter.toString(),
+        });
 
         const op = operatorStack.pop()!;
         outputQueue.push(op);
@@ -184,7 +189,7 @@ export const evaluateReversePolishNotation: EvaluateReversePolishNotation = (
     }
 
     if (isNumber(token)) {
-      stack.push(Number(token));
+      stack.push(Number(token.value));
     }
 
     if (isFunction(token)) {
@@ -195,11 +200,14 @@ export const evaluateReversePolishNotation: EvaluateReversePolishNotation = (
         args.push(stack.pop()!);
       }
 
-      switch (token) {
-        case "max":
+      switch (token.value.toUpperCase()) {
+        case "SUM":
+          stack.push(args.reduce((a, b) => a + b, 0));
+          break;
+        case "MAX":
           stack.push(Math.max(...args));
           break;
-        case "sin":
+        case "SIN":
           stack.push(Math.sin(args[0]));
           break;
         default:
@@ -211,20 +219,20 @@ export const evaluateReversePolishNotation: EvaluateReversePolishNotation = (
       const b = stack.pop()!;
       const a = stack.pop()!;
 
-      switch (token) {
-        case "+":
+      switch (token.type) {
+        case TokenTypes.ADDITION:
           stack.push(a + b);
           break;
-        case "-":
+        case TokenTypes.SUBTRACTION:
           stack.push(a - b);
           break;
-        case "*":
+        case TokenTypes.MULTIPLICATION:
           stack.push(a * b);
           break;
-        case "/":
+        case TokenTypes.DIVISION:
           stack.push(a / b);
           break;
-        case "^":
+        case TokenTypes.EXPONENTIATION:
           stack.push(Math.pow(a, b));
           break;
         default:
@@ -236,49 +244,58 @@ export const evaluateReversePolishNotation: EvaluateReversePolishNotation = (
   return stack.pop()!;
 };
 
-const isNumber = (token: string) => {
-  return !isNaN(Number(token));
+const isNumber = (token: Token) => {
+  return token.type === TokenTypes.NUMBER;
 };
 
-const isFunction = (token: string) => {
-  return token === "max" || token === "sin";
+const isFunction = (token: Token) => {
+  return token.type === TokenTypes.FUNCTION;
 };
 
-const isOperator = (token: string) => {
+const isOperator = (token: Token) => {
   return (
-    token === "+" ||
-    token === "-" ||
-    token === "*" ||
-    token === "/" ||
-    token === "^"
+    token.type === TokenTypes.ADDITION ||
+    token.type === TokenTypes.SUBTRACTION ||
+    token.type === TokenTypes.MULTIPLICATION ||
+    token.type === TokenTypes.DIVISION ||
+    token.type === TokenTypes.EXPONENTIATION
   );
 };
 
-const precedence = (token: string) => {
-  if (token === "+" || token === "-") {
+const precedence = (token: Token) => {
+  if (
+    token.type === TokenTypes.ADDITION ||
+    token.type === TokenTypes.SUBTRACTION
+  ) {
     return 1;
   }
-  if (token === "*" || token === "/") {
+
+  if (
+    token.type === TokenTypes.MULTIPLICATION ||
+    token.type === TokenTypes.DIVISION
+  ) {
     return 2;
   }
-  if (token === "^") {
+
+  if (token.type === TokenTypes.EXPONENTIATION) {
     return 3;
   }
+
   return 0;
 };
 
-const isArgumentsSeparator = (token: string) => {
-  return token === ",";
+const isArgumentsSeparator = (token: Token) => {
+  return token.type === TokenTypes.COMMA;
 };
 
-const isLeftParenthesis = (token: string) => {
-  return token === "(";
+const isLeftParenthesis = (token: Token) => {
+  return token.type === TokenTypes.PARENTHESIS_LEFT;
 };
 
-const isRightParenthesis = (token: string) => {
-  return token === ")";
+const isRightParenthesis = (token: Token) => {
+  return token.type === TokenTypes.PARENTHESIS_RIGHT;
 };
 
-const isLeftAssociative = (token: string) => {
-  return token !== "^";
+const isLeftAssociative = (token: Token) => {
+  return token.type !== TokenTypes.EXPONENTIATION;
 };
