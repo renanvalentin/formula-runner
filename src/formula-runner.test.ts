@@ -7,9 +7,13 @@ const matrix: Matrix = [
   [7, 8, 9],
 ];
 
-test("basic", () => {
-  const input = "(SUM(A1:B2) / C1) * 5";
-  const result = evaluate(input, matrix);
-
-  expect(result).toBe(20);
+[
+  ["(SUM(A1:B2) / C1) * 5", 20],
+  ["MAX((SUM(A1:B2) / C1) * 5, 30)", 30],
+  ["SUM(A1:A3, SUM(B1:C3)) + B2 * C3 / SUM(A1, B2)", 52.5],
+].forEach(([input, expected]) => {
+  test(`input: ${input}, expected: ${expected}`, () => {
+    const result = evaluate(input as string, matrix);
+    expect(result).toBe(expected);
+  });
 });
