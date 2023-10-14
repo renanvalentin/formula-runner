@@ -1,4 +1,4 @@
-import { Opaque } from "./types";
+import { Opaque } from "type-fest";
 
 type ReversePolishNotation = Opaque<string[], "ReversePolishNotation">;
 
