@@ -24,7 +24,7 @@ test("basic", () => {
   ]);
 
   const result = evaluateReversePolishNotation(reversePolishNotation);
-  expect(result).toBe(3.001953125);
+  expect(result).toBe(3.0001220703125);
 });
 
 test("with functions", () => {
@@ -35,11 +35,13 @@ test("with functions", () => {
   expect(reversePolishNotation).toEqual([
     "2",
     "3",
+    "2",
     "max",
     "3",
     "/",
     "9",
     "*",
+    "1",
     "sin",
   ]);
 
@@ -48,12 +50,32 @@ test("with functions", () => {
 });
 
 test("with N arguments", () => {
+  expect(convertToReversePolishNotation("max ( 2, 3 )")).toEqual([
+    "2",
+    "3",
+    "2",
+    "max",
+  ]);
+
   const reversePolishNotation = convertToReversePolishNotation(
-    "9 + max ( 2, 3, 4, 5 )"
+    "9 + max ( 1, 2, 3, 4, max ( 1, 2 ) )"
   );
 
-  expect(reversePolishNotation).toEqual(["9", "2", "3", "4", "5", "max", "+"]);
+  expect(reversePolishNotation).toEqual([
+    "9",
+    "1",
+    "2",
+    "3",
+    "4",
+    "1",
+    "2",
+    "2",
+    "max",
+    "5",
+    "max",
+    "+",
+  ]);
 
   const result = evaluateReversePolishNotation(reversePolishNotation);
-  expect(result).toBe(0.4121184852417566);
+  expect(result).toBe(13);
 });
